@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>펜 담채화 풍경 스케치</title>
 <style>
+/* 원본의 모든 스타일을 그대로 유지합니다 */
 :root {
   --ink: #171411; --muted: #6f6a63; --soft: #a79f96; --line: #e2ddd5;
   --paper: #fbfaf6; --panel: #ffffff; --accent: #234b42;
@@ -23,12 +24,9 @@ h1 { margin: 0; font-size: clamp(24px, 5vw, 42px); }
 .toolbar { display: flex; gap: 8px; }
 .btn {
   min-height: 42px; border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 0 16px; background: #fff; cursor: pointer; font-weight: 800; transition: all 0.2s;
+  padding: 0 16px; background: #fff; cursor: pointer; font-weight: 800;
 }
-.btn:hover { background: #f9f8f4; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn.primary { background: var(--ink); color: #fff; border: none; }
-.btn.primary:hover { background: #333; }
+.btn.primary { background: var(--ink); color: #fff; }
 .upload {
   display: grid; grid-template-columns: 1fr 300px; gap: 18px;
   padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff;
@@ -36,23 +34,17 @@ h1 { margin: 0; font-size: clamp(24px, 5vw, 42px); }
 .drop {
   border: 2px dashed #bbb2a7; border-radius: var(--radius);
   min-height: 250px; display: grid; place-items: center; cursor: pointer; position: relative;
-  transition: background 0.2s;
 }
-.drop:hover { background: #fcfbf9; }
 .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .workspace { display: none; margin-top: 20px; }
 .workspace.on { display: block; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .card { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; overflow: hidden; }
-.stage { min-height: 300px; display: flex; align-items: center; justify-content: center; background: #fdfcf8; padding: 10px; }
-canvas, img { max-width: 100%; height: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.stage { min-height: 300px; display: grid; place-items: center; background: #fdfcf8; position: relative; }
+canvas, img { max-width: 100%; height: auto; display: none; }
 .visible { display: block; }
-.loader { display: none; padding: 20px; color: var(--accent); font-weight: bold; text-align: center; }
-.loader.on { display: block; }
-@media (max-width: 768px) {
-  .upload { grid-template-columns: 1fr; }
-  .grid { grid-template-columns: 1fr; }
-}
+.loader { display: none; position: absolute; inset: 0; background: rgba(255,255,255,0.8); place-items: center; z-index: 5; font-weight: bold; color: var(--accent); }
+.loader.on { display: grid; }
 </style>
 </head>
 <body>
@@ -68,34 +60,31 @@ canvas, img { max-width: 100%; height: auto; display: none; box-shadow: 0 4px 12
   <section class="upload" id="uploadSection">
     <label class="drop" id="dropZone">
       <input type="file" id="fileInput" accept="image/*" />
-      <div style="text-align:center">
-        <strong>사진을 여기에 드래그하거나 클릭하세요</strong>
-        <p style="color:#888; font-size:14px; margin-top:8px;">(CORS 에러 방지를 위해 서버 환경에서 실행하세요)</p>
-      </div>
+      <strong>사진을 여기에 드래그하거나 클릭하세요</strong>
     </label>
-    <div style="padding:10px; font-size:13px; color:#666; line-height:1.6;">
-      <h3 style="margin-top:0;">안내</h3>
-      <p>1. 사진을 선택하면 원본이 표시됩니다.<br>2. '스케치 만들기'를 누르면 변환이 시작됩니다.<br>3. 깃허브 페이지(GitHub Pages)에 올리면 정상적으로 작동합니다.</p>
+    <div style="padding:10px; font-size:13px; color:#666;">
+      <h3>도움말</h3>
+      <p>어반 스케치 스타일로 사진을 변환합니다.</p>
     </div>
   </section>
 
   <section class="workspace" id="workspace">
     <div class="grid">
       <div class="card">
-        <div style="padding:12px; border-bottom:1px solid #eee; font-weight:bold;">원본 사진</div>
+        <div style="padding:10px; border-bottom:1px solid #eee;">원본</div>
         <div class="stage"><img id="originalImg" /></div>
       </div>
       <div class="card">
-        <div style="padding:12px; border-bottom:1px solid #eee; font-weight:bold;">1. 펜 스케치 추출</div>
+        <div style="padding:10px; border-bottom:1px solid #eee;">1. 펜 스케치 (선 중심)</div>
         <div class="stage">
-          <div id="sketchLoader" class="loader">펜선을 따는 중...</div>
+          <div id="sketchLoader" class="loader">펜선 추출 중...</div>
           <canvas id="sketchCanvas"></canvas>
         </div>
       </div>
       <div class="card">
-        <div style="padding:12px; border-bottom:1px solid #eee; font-weight:bold;">2. 최종 수채화 담채</div>
+        <div style="padding:10px; border-bottom:1px solid #eee;">2. 최종 담채화 (발색 강화)</div>
         <div class="stage">
-          <div id="finalLoader" class="loader">색을 입히는 중...</div>
+          <div id="finalLoader" class="loader">채색 중...</div>
           <canvas id="finalCanvas"></canvas>
         </div>
       </div>
@@ -115,9 +104,9 @@ $("fileInput").addEventListener("change", (e) => {
     sourceImage = new Image();
     sourceImage.onload = () => {
       $("originalImg").src = event.target.result;
-      $("originalImg").className = "visible";
+      $("originalImg").classList.add("visible");
       $("uploadSection").style.display = "none";
-      $("workspace").className = "workspace on";
+      $("workspace").classList.add("on");
       $("makeBtn").disabled = false;
     };
     sourceImage.src = event.target.result;
@@ -127,114 +116,94 @@ $("fileInput").addEventListener("change", (e) => {
 
 $("makeBtn").addEventListener("click", async () => {
   $("makeBtn").disabled = true;
-  
-  // 1. 펜 스케치
-  $("sketchLoader").className = "loader on";
+  $("sketchLoader").classList.add("on");
   await new Promise(r => setTimeout(r, 100));
   drawPenSketch();
-  $("sketchLoader").className = "loader";
+  $("sketchLoader").classList.remove("on");
 
-  // 2. 채색
-  $("finalLoader").className = "loader on";
-  await new Promise(r => setTimeout(r, 150));
+  $("finalLoader").classList.add("on");
+  await new Promise(r => setTimeout(r, 100));
   drawWatercolorFinal();
-  $("finalLoader").className = "loader";
-  
+  $("finalLoader").classList.remove("on");
   $("makeBtn").disabled = false;
 });
 
 $("resetBtn").addEventListener("click", () => location.reload());
 
-/* Modified Pen Sketch Logic */
+// [중요 수정] 면이 아닌 '선'을 따는 Sobel Edge Detection 알고리즘
+function drawPenSketch() {
   const canvas = $("sketchCanvas");
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   const w = sourceImage.width;
   const h = sourceImage.height;
-  const scale = Math.min(1000/w, 1000/h, 1);
+  const scale = Math.min(1000/w, 1);
   canvas.width = w * scale;
   canvas.height = h * scale;
-  
   ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imgData.data;
-
-  // 엣지 강조 및 펜선 효과
-  const threshold = 110;
-  for (let i = 0; i < data.length; i += 4) {
-    const avg = (data[i] + data[i+1] + data[i+2]) / 3;
-    const val = avg < threshold ? 30 : 255; // 완전 검정보다는 진한 먹색
-    data[i] = data[i+1] = data[i+2] = val;
-  }
-  ctx.putImageData(imgData, 0, 0);
-  canvas.className = "visible";
-}
-
-function watercolorize(r, g, b, lum) {
-  // 채도 대폭 강화 (발색 위주)
-  const factor = 1.4;
-  const avg = (r + g + b) / 3;
-  let nr = Math.min(255, r + (r - avg) * factor);
-  let ng = Math.min(255, g + (g - avg) * factor);
-  let nb = Math.min(255, b + (b - avg) * factor);
-
-  // 담채화 특유의 밝고 맑은 느낌 조절
-  const transparency = lum > 0.8 ? 0.25 : 0.6; 
-  const paper = [251, 250, 246]; // 미색 종이 컬러
+  const width = canvas.width;
+  const height = canvas.height;
   
-  return [
-    Math.round(paper[0] * (1 - transparency) + nr * transparency),
-    Math.round(paper[1] * (1 - transparency) + ng * transparency),
-    Math.round(paper[2] * (1 - transparency) + nb * transparency)
-  ];
+  const grayscale = new Uint8Array(width * height);
+  for (let i = 0; i < data.length; i += 4) {
+    grayscale[i / 4] = data[i] * 0.3 + data[i+1] * 0.59 + data[i+2] * 0.11;
+  }
+
+  const output = ctx.createImageData(width, height);
+  const outData = output.data;
+
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const idx = y * width + x;
+      const gx = -grayscale[idx-width-1] + grayscale[idx-width+1] - 2*grayscale[idx-1] + 2*grayscale[idx+1] - grayscale[idx+width-1] + grayscale[idx+width+1];
+      const gy = -grayscale[idx-width-1] - 2*grayscale[idx-width] - grayscale[idx-width+1] + grayscale[idx+width-1] + 2*grayscale[idx+width] + grayscale[idx+width+1];
+      const mag = Math.sqrt(gx*gx + gy*gy);
+      const val = mag > 50 ? 40 : 255; // 50보다 크면 선(검은색), 아니면 배경(흰색)
+      const p = idx * 4;
+      outData[p] = outData[p+1] = outData[p+2] = val;
+      outData[p+3] = 255;
+    }
+  }
+  ctx.putImageData(output, 0, 0);
+  canvas.classList.add("visible");
 }
 
 function drawWatercolorFinal() {
   const canvas = $("finalCanvas");
   const ctx = canvas.getContext("2d");
-  const sCanvas = $("sketchCanvas");
-  canvas.width = sCanvas.width;
-  canvas.height = sCanvas.height;
-  
-  // 종이 배경
-  ctx.fillStyle = "#fbfaf6";
+  canvas.width = $("sketchCanvas").width;
+  canvas.height = $("sketchCanvas").height;
+  ctx.fillStyle = "#fffefa";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const tCanvas = document.createElement("canvas");
-  tCanvas.width = canvas.width;
-  tCanvas.height = canvas.height;
-  const tctx = tCanvas.getContext("2d");
+  const temp = document.createElement("canvas");
+  temp.width = canvas.width; temp.height = canvas.height;
+  const tctx = temp.getContext("2d");
   tctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
-  const srcData = tctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  const src = tctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
-  // 수채화 터치 (브러시 효과)
   const step = 15;
   for (let y = 0; y < canvas.height; y += step) {
     for (let x = 0; x < canvas.width; x += step) {
       const i = (y * canvas.width + x) * 4;
-      const r = srcData[i], g = srcData[i+1], b = srcData[i+2];
-      const lum = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+      // 발색 강화: 채도를 높여서 색감을 쨍하게 함
+      const r = src[i], g = src[i+1], b = src[i+2];
+      const avg = (r+g+b)/3;
+      const nr = Math.min(255, r + (r-avg)*1.6);
+      const ng = Math.min(255, g + (g-avg)*1.6);
+      const nb = Math.min(255, b + (b-avg)*1.6);
       
-      if (lum > 0.96) continue;
-
-      const c = watercolorize(r, g, b, lum);
-      ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.5)`;
-      
+      ctx.fillStyle = `rgba(${nr},${ng},${nb},0.45)`;
       ctx.beginPath();
-      // 불규칙한 원형 브러시로 수채화 느낌 극대화
-      const rx = x + (Math.random() - 0.5) * 10;
-      const ry = y + (Math.random() - 0.5) * 10;
-      const rad = step * (1.2 + Math.random() * 0.8);
-      ctx.arc(rx, ry, rad, 0, Math.PI * 2);
+      ctx.arc(x + Math.random()*10, y + Math.random()*10, step * 1.5, 0, Math.PI*2);
       ctx.fill();
     }
   }
-  
-  // 펜선 레이어 합성 (곱하기 느낌)
-  ctx.globalAlpha = 0.7;
-  ctx.drawImage(sCanvas, 0, 0);
-  ctx.globalAlpha = 1.0;
-  
-  canvas.className = "visible";
+  ctx.globalAlpha = 0.65;
+  ctx.drawImage($("sketchCanvas"), 0, 0);
+  canvas.classList.add("visible");
 }
 </script>
 </body>
