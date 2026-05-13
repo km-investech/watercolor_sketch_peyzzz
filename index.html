@@ -129,3 +129,71 @@ function drawPenSketch() {
   
   const grayscale = new Uint8Array(w * h);
   for (let i = 0; i < pixels.length; i += 4) {
+    grayscale[i / 4] = pixels[i] * 0.3 + pixels[i+1] * 0.59 + pixels[i+2] * 0.11;
+  }
+
+  const output = ctx.createImageData(w, h);
+  const outData = output.data;
+
+  // 선 밀도를 60 수준으로 조정한 Sobel 필터
+  const density = 60; 
+
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const idx = y * w + x;
+      const gx = -grayscale[idx-w-1] + grayscale[idx-w+1] - 2*grayscale[idx-1] + 2*grayscale[idx+1] - grayscale[idx+w-1] + grayscale[idx+w+1];
+      const gy = -grayscale[idx-w-1] - 2*grayscale[idx-w] - grayscale[idx-w+1] + grayscale[idx+w-1] + 2*grayscale[idx+w] + grayscale[idx+w+1];
+      const mag = Math.sqrt(gx*gx + gy*gy);
+      
+      // 밀도가 너무 높은 부분(작은 디테일)은 무시하고 굵직한 선만 추출
+      const isEdge = mag > density;
+      const val = isEdge ? 65 : 255; // 선 색상을 약간 흐린 먹색(65)으로 조정
+      
+      const p = idx * 4;
+      outData[p] = outData[p+1] = outData[p+2] = val;
+      outData[p+3] = 255;
+    }
+  }
+  ctx.putImageData(output, 0, 0);
+  canvas.classList.add("visible");
+}
+
+function drawWatercolorFinal() {
+  const canvas = $("finalCanvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = $("sketchCanvas").width;
+  canvas.height = $("sketchCanvas").height;
+  ctx.fillStyle = "#fffefa";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const temp = document.createElement("canvas");
+  temp.width = canvas.width; temp.height = canvas.height;
+  const tctx = temp.getContext("2d");
+  tctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+  const src = tctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+  const step = 16;
+  for (let y = 0; y < canvas.height; y += step) {
+    for (let x = 0; x < canvas.width; x += step) {
+      const i = (y * canvas.width + x) * 4;
+      const r = src[i], g = src[i+1], b = src[i+2];
+      const avg = (r+g+b)/3;
+      // 발색 1.6배 강화 유지
+      const nr = Math.min(255, r + (r-avg)*1.6);
+      const ng = Math.min(255, g + (g-avg)*1.6);
+      const nb = Math.min(255, b + (b-avg)*1.6);
+      
+      ctx.fillStyle = `rgba(${nr},${ng},${nb},0.4)`;
+      ctx.beginPath();
+      ctx.arc(x + Math.random()*12, y + Math.random()*12, step * 1.6, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  // 펜선을 채색 위에 부드럽게 얹음
+  ctx.globalAlpha = 0.55;
+  ctx.drawImage($("sketchCanvas"), 0, 0);
+  canvas.classList.add("visible");
+}
+</script>
+</body>
+</html>
