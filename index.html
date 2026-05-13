@@ -3,13 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>펜 담채화 풍경 스케치</title>
+<title>어반 스케치 변환기 (성근 선 버전)</title>
 <style>
-/* 원본의 모든 스타일을 그대로 유지합니다 */
 :root {
-  --ink: #171411; --muted: #6f6a63; --soft: #a79f96; --line: #e2ddd5;
-  --paper: #fbfaf6; --panel: #ffffff; --accent: #234b42;
-  --shadow: 0 18px 60px rgba(27, 22, 18, .1), 0 4px 16px rgba(27, 22, 18, .06);
+  --ink: #171411; --muted: #6f6a63; --line: #e2ddd5;
+  --paper: #fbfaf6; --accent: #234b42;
   --radius: 8px;
 }
 * { box-sizing: border-box; }
@@ -20,13 +18,13 @@ body {
 }
 .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0; }
 .top { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 22px; }
-h1 { margin: 0; font-size: clamp(24px, 5vw, 42px); }
+h1 { margin: 0; font-size: 28px; font-weight: 900; }
 .toolbar { display: flex; gap: 8px; }
 .btn {
   min-height: 42px; border: 1px solid var(--line); border-radius: var(--radius);
   padding: 0 16px; background: #fff; cursor: pointer; font-weight: 800;
 }
-.btn.primary { background: var(--ink); color: #fff; }
+.btn.primary { background: var(--ink); color: #fff; border: none; }
 .upload {
   display: grid; grid-template-columns: 1fr 300px; gap: 18px;
   padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff;
@@ -40,7 +38,7 @@ h1 { margin: 0; font-size: clamp(24px, 5vw, 42px); }
 .workspace.on { display: block; }
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .card { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; overflow: hidden; }
-.stage { min-height: 300px; display: grid; place-items: center; background: #fdfcf8; position: relative; }
+.stage { min-height: 350px; display: grid; place-items: center; background: #fdfcf8; position: relative; }
 canvas, img { max-width: 100%; height: auto; display: none; }
 .visible { display: block; }
 .loader { display: none; position: absolute; inset: 0; background: rgba(255,255,255,0.8); place-items: center; z-index: 5; font-weight: bold; color: var(--accent); }
@@ -50,7 +48,7 @@ canvas, img { max-width: 100%; height: auto; display: none; }
 <body>
 <main class="shell">
   <section class="top">
-    <div><h1>펜 담채화 스케치 변환</h1></div>
+    <div><h1>어반 스케치 변환 (성근 밑그림)</h1></div>
     <div class="toolbar">
       <button class="btn" id="resetBtn">새로 시작</button>
       <button class="btn primary" id="makeBtn" disabled>스케치 만들기</button>
@@ -60,34 +58,19 @@ canvas, img { max-width: 100%; height: auto; display: none; }
   <section class="upload" id="uploadSection">
     <label class="drop" id="dropZone">
       <input type="file" id="fileInput" accept="image/*" />
-      <strong>사진을 여기에 드래그하거나 클릭하세요</strong>
+      <strong>사진을 업로드하세요</strong>
     </label>
     <div style="padding:10px; font-size:13px; color:#666;">
-      <h3>도움말</h3>
-      <p>어반 스케치 스타일로 사진을 변환합니다.</p>
+      <h3>스케치 설정</h3>
+      <p>• 선 밀도: 60 (성글게 조정)<br>• 발색: 1.6 (선명하게 유지)</p>
     </div>
   </section>
 
   <section class="workspace" id="workspace">
     <div class="grid">
-      <div class="card">
-        <div style="padding:10px; border-bottom:1px solid #eee;">원본</div>
-        <div class="stage"><img id="originalImg" /></div>
-      </div>
-      <div class="card">
-        <div style="padding:10px; border-bottom:1px solid #eee;">1. 펜 스케치 (선 중심)</div>
-        <div class="stage">
-          <div id="sketchLoader" class="loader">펜선 추출 중...</div>
-          <canvas id="sketchCanvas"></canvas>
-        </div>
-      </div>
-      <div class="card">
-        <div style="padding:10px; border-bottom:1px solid #eee;">2. 최종 담채화 (발색 강화)</div>
-        <div class="stage">
-          <div id="finalLoader" class="loader">채색 중...</div>
-          <canvas id="finalCanvas"></canvas>
-        </div>
-      </div>
+      <div class="card"><div style="padding:10px; font-size:12px;">원본</div><div class="stage"><img id="originalImg" /></div></div>
+      <div class="card"><div style="padding:10px; font-size:12px;">1. 펜 스케치 (성근 선)</div><div class="stage"><div id="sketchLoader" class="loader">선 따는 중...</div><canvas id="sketchCanvas"></canvas></div></div>
+      <div class="card"><div style="padding:10px; font-size:12px;">2. 최종 담채화</div><div class="stage"><div id="finalLoader" class="loader">채색 중...</div><canvas id="finalCanvas"></canvas></div></div>
     </div>
   </section>
 </main>
@@ -117,12 +100,12 @@ $("fileInput").addEventListener("change", (e) => {
 $("makeBtn").addEventListener("click", async () => {
   $("makeBtn").disabled = true;
   $("sketchLoader").classList.add("on");
-  await new Promise(r => setTimeout(r, 100));
+  await new Promise(r => setTimeout(r, 150));
   drawPenSketch();
   $("sketchLoader").classList.remove("on");
 
   $("finalLoader").classList.add("on");
-  await new Promise(r => setTimeout(r, 100));
+  await new Promise(r => setTimeout(r, 150));
   drawWatercolorFinal();
   $("finalLoader").classList.remove("on");
   $("makeBtn").disabled = false;
@@ -130,81 +113,19 @@ $("makeBtn").addEventListener("click", async () => {
 
 $("resetBtn").addEventListener("click", () => location.reload());
 
-// [중요 수정] 면이 아닌 '선'을 따는 Sobel Edge Detection 알고리즘
+// [수정] 선 밀도를 낮추고 큰 윤곽 위주로 추출하는 로직
 function drawPenSketch() {
   const canvas = $("sketchCanvas");
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  const w = sourceImage.width;
-  const h = sourceImage.height;
-  const scale = Math.min(1000/w, 1);
-  canvas.width = w * scale;
-  canvas.height = h * scale;
+  const scale = Math.min(1000/sourceImage.width, 1);
+  canvas.width = sourceImage.width * scale;
+  canvas.height = sourceImage.height * scale;
   ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
 
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imgData.data;
-  const width = canvas.width;
-  const height = canvas.height;
+  const pixels = imgData.data;
+  const w = canvas.width;
+  const h = canvas.height;
   
-  const grayscale = new Uint8Array(width * height);
-  for (let i = 0; i < data.length; i += 4) {
-    grayscale[i / 4] = data[i] * 0.3 + data[i+1] * 0.59 + data[i+2] * 0.11;
-  }
-
-  const output = ctx.createImageData(width, height);
-  const outData = output.data;
-
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const idx = y * width + x;
-      const gx = -grayscale[idx-width-1] + grayscale[idx-width+1] - 2*grayscale[idx-1] + 2*grayscale[idx+1] - grayscale[idx+width-1] + grayscale[idx+width+1];
-      const gy = -grayscale[idx-width-1] - 2*grayscale[idx-width] - grayscale[idx-width+1] + grayscale[idx+width-1] + 2*grayscale[idx+width] + grayscale[idx+width+1];
-      const mag = Math.sqrt(gx*gx + gy*gy);
-      const val = mag > 50 ? 40 : 255; // 50보다 크면 선(검은색), 아니면 배경(흰색)
-      const p = idx * 4;
-      outData[p] = outData[p+1] = outData[p+2] = val;
-      outData[p+3] = 255;
-    }
-  }
-  ctx.putImageData(output, 0, 0);
-  canvas.classList.add("visible");
-}
-
-function drawWatercolorFinal() {
-  const canvas = $("finalCanvas");
-  const ctx = canvas.getContext("2d");
-  canvas.width = $("sketchCanvas").width;
-  canvas.height = $("sketchCanvas").height;
-  ctx.fillStyle = "#fffefa";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const temp = document.createElement("canvas");
-  temp.width = canvas.width; temp.height = canvas.height;
-  const tctx = temp.getContext("2d");
-  tctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
-  const src = tctx.getImageData(0, 0, canvas.width, canvas.height).data;
-
-  const step = 15;
-  for (let y = 0; y < canvas.height; y += step) {
-    for (let x = 0; x < canvas.width; x += step) {
-      const i = (y * canvas.width + x) * 4;
-      // 발색 강화: 채도를 높여서 색감을 쨍하게 함
-      const r = src[i], g = src[i+1], b = src[i+2];
-      const avg = (r+g+b)/3;
-      const nr = Math.min(255, r + (r-avg)*1.6);
-      const ng = Math.min(255, g + (g-avg)*1.6);
-      const nb = Math.min(255, b + (b-avg)*1.6);
-      
-      ctx.fillStyle = `rgba(${nr},${ng},${nb},0.45)`;
-      ctx.beginPath();
-      ctx.arc(x + Math.random()*10, y + Math.random()*10, step * 1.5, 0, Math.PI*2);
-      ctx.fill();
-    }
-  }
-  ctx.globalAlpha = 0.65;
-  ctx.drawImage($("sketchCanvas"), 0, 0);
-  canvas.classList.add("visible");
-}
-</script>
-</body>
-</html>
+  const grayscale = new Uint8Array(w * h);
+  for (let i = 0; i < pixels.length; i += 4) {
